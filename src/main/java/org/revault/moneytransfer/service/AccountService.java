@@ -6,4 +6,5 @@ public interface AccountService {
     public Account retreive(String number);
     public void delete(String number);
     public void save(Account account);
+    public void saveTwo(Account account1, Account account2);
 }

@@ -3,6 +3,6 @@ package org.revault.moneytransfer.service;
 import org.revault.moneytransfer.entity.Account;
 
 public interface TransactionService {
-    public Account getByNumber(int number);
-    public void makeTransfer(int debitAcc, int creditAcc, Long amount);
+    public void makeTransfer(String debitAcc, String creditAcc, Long amount);
+    public AccountService getAccountService();
 }

@@ -75,5 +75,25 @@ public class AccountServiceImpl implements AccountService{
         }*/
     }
 
+    @Override
+    public void saveTwo(Account account1, Account account2){
+        EntityTransaction transaction = em.getTransaction();
+
+        try {
+            transaction.begin();
+
+            em.merge(account1);
+            em.merge(account2);
+
+            transaction.commit();
+        } catch (Exception e) {
+            System.out.println("Error saving two Accounts: " + e.getMessage());
+
+            transaction.rollback();
+        } /*finally {
+            em.close();
+        }*/
+    }
+
 
 }

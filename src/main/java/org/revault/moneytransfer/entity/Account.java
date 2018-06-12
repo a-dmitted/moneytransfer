@@ -13,6 +13,11 @@ public class Account {
         this.amount = amount;
     }
 
+    public Account(String number, Long amount) {
+        this.number = number;
+        this.amount = amount;
+    }
+
     public Account() {
         this.amount = 0L;
     }
