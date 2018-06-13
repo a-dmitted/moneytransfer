@@ -3,9 +3,7 @@ package org.revault.moneytransfer.api;
 import org.revault.moneytransfer.service.TransactionService;
 
 import javax.inject.Inject;
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -19,21 +17,24 @@ public class MoneyTransferResource {
         this.transactionService = transactionService;
     }
 
-    @POST
-    @Path(value = "save{id}")
+    @GET
+    @Path(value = "transfer")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response makeTransfer(String debitAcc, String creditAcc, Long amount) {
+    public Response makeTransfer(
+        @QueryParam("debitAcc") String debitAcc,
+        @QueryParam("creditAcc") String creditAcc,
+        @QueryParam("amount") Long amount
+    )
+    {
         transactionService.makeTransfer(debitAcc, creditAcc, amount);
 
         return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
     }
 
-    @POST
+    @GET
     @Path(value = "dummy")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response dummyResponse() {
-
-
         return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
     }
 }

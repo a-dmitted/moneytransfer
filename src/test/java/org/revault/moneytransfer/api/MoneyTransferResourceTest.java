@@ -9,13 +9,9 @@ import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
 import org.junit.Test;
-
-import org.revault.moneytransfer.AccountHelper;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
-import org.revault.moneytransfer.entity.AccountEntity;
 import org.revault.moneytransfer.service.TransactionService;
-
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.core.Application;
@@ -23,21 +19,23 @@ import javax.ws.rs.core.Response;
 
 import static org.junit.Assert.assertEquals;
 
-public class AccountResourceTest extends JerseyTest {
 
+public class MoneyTransferResourceTest extends JerseyTest {
     @Inject
     private TransactionService transactionService;
-
-    private AccountHelper accountHelper;
 
     @Override
     protected Application configure() {
         enable(TestProperties.LOG_TRAFFIC);
         enable(TestProperties.DUMP_ENTITY);
 
-        ResourceConfig config = new ResourceConfig(AccountResource.class);
+        ResourceConfig config = new ResourceConfig(MoneyTransferResource.class, AccountResource.class);
         config.register(new InjectableProvider());
 
+        /*
+        *  We use ApplicationBinder to bind implementations to interfaces
+        *  and allow dependency injection
+        */
         final Binder b = new AbstractBinder() {
             @Override
             public void configure() {
@@ -51,14 +49,31 @@ public class AccountResourceTest extends JerseyTest {
     }
 
     @Test
-    public void testRetreiveAnAccount(){
-        Account account = new Account("0000 0000", 1000L);
-        transactionService.getAccountService().save(account);
+    public void testMoneyTransfer(){
+        /*
+         * Emulating a repository
+         */
+        Account debitAccBefore = new Account("0000 0000 0000 0000", 1000L);
+        transactionService.getAccountService().save(debitAccBefore);
+        Account creditAccBefore = new Account("1111 1111 1111 1111", 1000L);
+        transactionService.getAccountService().save(creditAccBefore);
 
-        Response response = target("accountresource/retrieve/0000 0000").request().get();
-        AccountEntity accountEntity1 = response.readEntity(AccountEntity.class);
+        /*
+         * Making a transaction
+         */
 
-        assertEquals(1000L, (long)accountEntity1.getAmount());
+        Response response = target("moneytransfer/transfer")
+                .queryParam("debitAcc","0000 0000 0000 0000")
+                .queryParam("creditAcc", "1111 1111 1111 1111")
+                .queryParam("amount", 100L).request().get();
+
+        /*
+         * Verifying the accounts state after transaction
+         */
+        Account debitAccAfter = transactionService.getAccountService().retreive("0000 0000 0000 0000");
+        Account creditAccAfter = transactionService.getAccountService().retreive("1111 1111 1111 1111");
+        assertEquals(900L, (long)debitAccAfter.getAmount());
+        assertEquals(1100L, (long)creditAccAfter.getAmount());
     }
 
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
@@ -76,5 +91,4 @@ public class AccountResourceTest extends JerseyTest {
             transactionService = null;
         }
     }
-
 }
