@@ -6,11 +6,9 @@ import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.junit.Before;
 import org.junit.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
-import org.revault.moneytransfer.entity.Account;
+import org.revault.moneytransfer.entity.AccountEntity;
 
 import javax.inject.Inject;
 

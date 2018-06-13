@@ -1,9 +1,8 @@
 package org.revault.moneytransfer.service;
 
 import org.junit.*;
-import org.revault.moneytransfer.entity.Account;
-
-import javax.inject.Inject;
+import org.revault.moneytransfer.api.data.Account;
+import org.revault.moneytransfer.entity.AccountEntity;
 
 public class AccountServiceTest {
     private static AccountService accountService;
@@ -14,15 +13,13 @@ public class AccountServiceTest {
 
     @Test
     public void testInsertAccount(){
-        Account account = new Account(100L);
-        account.setNumber("0000 0000 0000 0000");
+        Account account= new Account("0000 0000 0000 0000", 100L);
         accountService.save(account);
     }
 
     @Test
     public void testUpdateAccount(){
-        Account account = new Account(100L);
-        account.setNumber("0000 0000 0000 0001");
+        Account account= new Account("0000 0000 0000 0001", 100L);
         accountService.save(account);
         Account account1 = accountService.retreive("0000 0000 0000 0001");
         account1.setAmount(200L);
@@ -31,8 +28,7 @@ public class AccountServiceTest {
 
     @Test
     public void testDeleteAccount(){
-        Account account = new Account(100L);
-        account.setNumber("0000 0000 0000 0002");
+        Account account= new Account("0000 0000 0000 0002", 100L);
         accountService.save(account);
         accountService.delete("0000 0000 0000 0002");
     }

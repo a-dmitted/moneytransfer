@@ -4,21 +4,21 @@ import javax.persistence.Entity;
 import javax.persistence.Id;
 
 @Entity
-public class Account {
+public class AccountEntity {
     @Id
     private String number;
     private Long amount;
 
-    public Account(Long amount) {
+    public AccountEntity(Long amount) {
         this.amount = amount;
     }
 
-    public Account(String number, Long amount) {
+    public AccountEntity(String number, Long amount) {
         this.number = number;
         this.amount = amount;
     }
 
-    public Account() {
+    public AccountEntity() {
         this.amount = 0L;
     }
 
@@ -30,12 +30,6 @@ public class Account {
         this.amount = amount;
     }
 
-    public boolean isEnough(Long amount){
-        if(this.amount < amount)
-            return false;
-        else
-            return true;
-    }
 
     public String getNumber() {
         return number;

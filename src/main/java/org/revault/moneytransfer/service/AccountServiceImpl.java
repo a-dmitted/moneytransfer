@@ -1,6 +1,7 @@
 package org.revault.moneytransfer.service;
 
-import org.revault.moneytransfer.entity.Account;
+import org.revault.moneytransfer.api.data.Account;
+import org.revault.moneytransfer.entity.AccountEntity;
 
 import javax.inject.Singleton;
 import javax.persistence.EntityManager;
@@ -14,19 +15,19 @@ public class AccountServiceImpl implements AccountService{
     private EntityManager em = emf.createEntityManager();
     @Override
     public Account retreive(String number){
-        Account account = null;
+        AccountEntity accountEntity = null;
 
         try {
-            account = em.find(Account.class, number);
+            accountEntity = em.find(AccountEntity.class, number);
         }catch (Exception e) {
-            System.out.println("Error retreiving Account: " + e.getMessage());
+            System.out.println("Error retreiving AccountEntity: " + e.getMessage());
         }
         /*
         finally {
             em.close();
         }*/
 
-        return account;
+        return entityToAccount(accountEntity);
     }
 
     @Override
@@ -36,18 +37,18 @@ public class AccountServiceImpl implements AccountService{
         try {
             transaction.begin();
 
-            Account account = em.find(Account.class, number);
+            AccountEntity accountEntity = em.find(AccountEntity.class, number);
 
-            if(account == null) {
-                System.out.println("Error deleting Account: Account not found");
+            if(accountEntity == null) {
+                System.out.println("Error deleting AccountEntity: AccountEntity not found");
             }
             else {
-                em.remove(account);
+                em.remove(accountEntity);
             }
 
             transaction.commit();
         } catch (Exception e) {
-            System.out.println("Error deleting Account: " + e.getMessage());
+            System.out.println("Error deleting AccountEntity: " + e.getMessage());
 
             transaction.rollback();
         } /*
@@ -63,11 +64,11 @@ public class AccountServiceImpl implements AccountService{
         try {
             transaction.begin();
 
-            em.merge(account);
+            em.merge(accountToEntity(account));
 
             transaction.commit();
         } catch (Exception e) {
-            System.out.println("Error saving Account: " + e.getMessage());
+            System.out.println("Error saving AccountEntity: " + e.getMessage());
 
             transaction.rollback();
         } /*finally {
@@ -82,8 +83,8 @@ public class AccountServiceImpl implements AccountService{
         try {
             transaction.begin();
 
-            em.merge(account1);
-            em.merge(account2);
+            em.merge(accountToEntity(account1));
+            em.merge(accountToEntity(account2));
 
             transaction.commit();
         } catch (Exception e) {
@@ -95,5 +96,25 @@ public class AccountServiceImpl implements AccountService{
         }*/
     }
 
+    // =========== Helpers ================
+    private Account entityToAccount(AccountEntity entity) {
+        Account account = new Account();
 
+        if (entity != null) {
+            account.setNumber(entity.getNumber());
+            account.setAmount(entity.getAmount());
+        }
+        return account;
+    }
+
+    private AccountEntity accountToEntity(Account account) {
+        AccountEntity entity = new AccountEntity();
+
+        if (account != null) {
+            entity.setNumber(account.getNumber());
+            entity.setAmount(account.getAmount());
+        }
+
+        return entity;
+    }
 }

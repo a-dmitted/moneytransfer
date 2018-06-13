@@ -6,7 +6,7 @@
         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
                       http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
     <persistence-unit name="moneytransfer-unit">
-        <class>org.revault.moneytransfer.entity.Account</class>
+        <class>org.revault.moneytransfer.entity.AccountEntity</class>
         <properties>
             <property name="hibernate.dialect" value="org.hibernate.dialect.H2Dialect" />
             <property name="hibernate.connection.driver_class" value="org.h2.Driver" />

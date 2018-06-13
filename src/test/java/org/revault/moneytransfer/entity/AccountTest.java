@@ -3,6 +3,7 @@ package org.revault.moneytransfer.entity;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.revault.moneytransfer.api.data.Account;
 
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -20,21 +21,7 @@ public class AccountTest {
     public void setUp(){
         emf = Persistence.createEntityManagerFactory("moneytransfer-unit");
         em = emf.createEntityManager();
-        account = new Account(100L);
-        account.setNumber("0000 0000 0000 0000");
-    }
-
-    @Test
-    public void isEnoughTest(){
-        isEnough = account.isEnough(200L);
-        assertEquals(isEnough, false);
-    }
-
-    @Test
-    public void isEnoughAndSetTest(){
-        account.setAmount(300L);
-        isEnough = account.isEnough(200L);
-        assertEquals(isEnough, true);
+        account = new Account("0000 0000 0000 0000", 100L);
     }
 
     @Test

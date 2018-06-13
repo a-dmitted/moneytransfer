@@ -1,6 +1,7 @@
 package org.revault.moneytransfer.service;
 
-import org.revault.moneytransfer.entity.Account;
+import org.revault.moneytransfer.api.data.Account;
+import org.revault.moneytransfer.entity.AccountEntity;
 
 public interface AccountService {
     public Account retreive(String number);
