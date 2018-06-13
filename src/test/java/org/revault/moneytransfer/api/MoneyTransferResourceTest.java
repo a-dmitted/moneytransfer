@@ -76,6 +76,34 @@ public class MoneyTransferResourceTest extends JerseyTest {
         assertEquals(1100L, (long)creditAccAfter.getAmount());
     }
 
+    @Test
+    public void testMoneyTransferNotEnough(){
+        /*
+         * Emulating a repository
+         */
+        Account debitAccBefore = new Account("2222 2222 2222 2222", 1000L);
+        transactionService.getAccountService().save(debitAccBefore);
+        Account creditAccBefore = new Account("3333 3333 3333 3333", 1000L);
+        transactionService.getAccountService().save(creditAccBefore);
+
+        /*
+         * Making a transaction
+         */
+
+        Response response = target("moneytransfer/transfer")
+                .queryParam("debitAcc","2222 2222 2222 2222")
+                .queryParam("creditAcc", "3333 3333 3333 3333")
+                .queryParam("amount", 1100L).request().get();
+
+        /*
+         * Verifying the accounts state after transaction
+         */
+        Account debitAccAfter = transactionService.getAccountService().retreive("2222 2222 2222 2222");
+        Account creditAccAfter = transactionService.getAccountService().retreive("3333 3333 3333 3333");
+        assertEquals(900L, (long)debitAccAfter.getAmount());
+        assertEquals(1100L, (long)creditAccAfter.getAmount());
+    }
+
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
 
         @Override

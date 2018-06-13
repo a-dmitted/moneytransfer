@@ -18,7 +18,9 @@ import org.revault.moneytransfer.service.TransactionService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import static org.junit.Assert.assertEquals;
@@ -52,13 +54,22 @@ public class AccountResourceTest extends JerseyTest {
 
     @Test
     public void testRetreiveAnAccount(){
-        Account account = new Account("0000 0000", 1000L);
+        Account account = new Account("0000 0000 0000 0000", 1000L);
         transactionService.getAccountService().save(account);
 
-        Response response = target("accountresource/retrieve/0000 0000").request().get();
-        AccountEntity accountEntity1 = response.readEntity(AccountEntity.class);
+        Response response = target("accountresource/retrieve/0000 0000 0000 0000").request().get();
+        AccountEntity account1 = response.readEntity(AccountEntity.class);
 
-        assertEquals(1000L, (long)accountEntity1.getAmount());
+        assertEquals(1000L, (long)account1.getAmount());
+    }
+
+    @Test
+    public void testSaveAnAccount(){
+        Account account = new Account("1111 1111 1111 1111", 1000L);
+        Entity<Account> accountEntity = Entity.entity(account, MediaType.APPLICATION_JSON_TYPE);
+        Response response = target("accountresource/save").request().post(accountEntity);
+        Account createdAccount = transactionService.getAccountService().retreive("1111 1111 1111 1111");
+        assertEquals(1000L, (long)createdAccount.getAmount());
     }
 
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
