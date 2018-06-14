@@ -10,7 +10,6 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
 import org.junit.Test;
 
-import org.revault.moneytransfer.AccountHelper;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
 import org.revault.moneytransfer.entity.AccountEntity;
@@ -30,7 +29,6 @@ public class AccountResourceTest extends JerseyTest {
     @Inject
     private TransactionService transactionService;
 
-    private AccountHelper accountHelper;
 
     @Override
     protected Application configure() {

@@ -1,5 +1,6 @@
 package org.revault.moneytransfer.api;
 
+import org.revault.moneytransfer.err.ServiceExeption;
 import org.revault.moneytransfer.service.TransactionService;
 
 import javax.inject.Inject;
@@ -26,15 +27,22 @@ public class MoneyTransferResource {
         @QueryParam("amount") Long amount
     )
     {
-        transactionService.makeTransfer(debitAcc, creditAcc, amount);
+        try{
+            transactionService.makeTransfer(debitAcc, creditAcc, amount);
+        }
+        catch(ServiceExeption ex){
+            return Response.status(Response.Status.PRECONDITION_FAILED).entity(ex.getError().toString()).type(MediaType.APPLICATION_JSON).build();
+        }
 
         return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
     }
 
+    /*
     @GET
     @Path(value = "dummy")
     @Consumes(MediaType.APPLICATION_JSON)
     public Response dummyResponse() {
         return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
     }
+    */
 }

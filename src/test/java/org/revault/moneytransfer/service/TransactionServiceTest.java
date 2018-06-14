@@ -4,11 +4,13 @@ import org.glassfish.hk2.api.ServiceLocator;
 import org.glassfish.hk2.utilities.Binder;
 import org.glassfish.hk2.utilities.ServiceLocatorUtilities;
 import org.glassfish.hk2.utilities.binding.AbstractBinder;
+import org.hibernate.service.spi.ServiceException;
 import org.junit.Before;
 import org.junit.Test;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
 import org.revault.moneytransfer.entity.AccountEntity;
+import org.revault.moneytransfer.err.ServiceExeption;
 
 import javax.inject.Inject;
 
@@ -33,8 +35,12 @@ public class TransactionServiceTest {
         AccountService accountService = transactionService.getAccountService();
         accountService.save(new Account("0000 0000", 1000L));
         accountService.save(new Account("1111 1111", 1000L));
-        transactionService.makeTransfer("0000 0000", "1111 1111", 100L);
-
+        try {
+            transactionService.makeTransfer("0000 0000", "1111 1111", 100L);
+        }
+        catch (ServiceExeption serviceExeption) {
+            serviceExeption.printStackTrace();
+        }
         Account account1 = accountService.retreive("0000 0000");
         Account account2 = accountService.retreive("1111 1111");
     }

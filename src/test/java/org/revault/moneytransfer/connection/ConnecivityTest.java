@@ -1,4 +1,4 @@
-package org.revault.moneytransfer;
+package org.revault.moneytransfer.connection;
 
 import org.junit.After;
 import org.junit.Before;
