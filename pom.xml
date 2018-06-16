@@ -9,6 +9,22 @@
     <version>1.0-SNAPSHOT</version>
     <name>moneytransfer</name>
 
+    <properties>
+        <jersey.version>2.27</jersey.version>
+        <grizzly-http-server.version>2.4.2</grizzly-http-server.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <h2database.version>1.4.190</h2database.version>
+        <hibernate.version>5.0.6.Final</hibernate.version>
+        <javax.transaction.version>1.1</javax.transaction.version>
+        <mockito.version>1.10.19</mockito.version>
+        <logback.version>1.2.3</logback.version>
+        <slf4ji.version>1.7.25</slf4ji.version>
+        <junit.version>4.9</junit.version>
+        <java.version>1.8</java.version>
+        <mojo.version>1.2.1</mojo.version>
+        <maven.version>2.5.1</maven.version>
+    </properties>
+
     <dependencyManagement>
         <dependencies>
             <dependency>
@@ -22,25 +38,53 @@
     </dependencyManagement>
 
     <dependencies>
+        <!-- jersey -->
+        <dependency>
+            <groupId>org.glassfish.grizzly</groupId>
+            <artifactId>grizzly-http-server</artifactId>
+            <version>${grizzly-http-server.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.containers</groupId>
             <artifactId>jersey-container-grizzly2-http</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.containers</groupId>
+            <artifactId>jersey-container-grizzly2-servlet</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-binding</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.glassfish.jersey.media</groupId>
+            <artifactId>jersey-media-json-jackson</artifactId>
         </dependency>
         <dependency>
             <groupId>org.glassfish.jersey.inject</groupId>
             <artifactId>jersey-hk2</artifactId>
         </dependency>
 
-         <dependency>
-            <groupId>org.glassfish.jersey.media</groupId>
-            <artifactId>jersey-media-json-binding</artifactId>
-        </dependency>
-
+        <!-- logging -->
         <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-            <version>4.9</version>
-            <scope>test</scope>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>${slf4ji.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>jul-to-slf4j</artifactId>
+            <version>${slf4ji.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>${logback.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-core</artifactId>
+            <version>${logback.version}</version>
         </dependency>
 
         <dependency>
@@ -56,16 +100,22 @@
         <dependency>
             <groupId>javax.transaction</groupId>
             <artifactId>jta</artifactId>
-             <version>${javax.transaction.version}</version>
+            <version>${javax.transaction.version}</version>
         </dependency>
-        <!--
+
+        <!-- testing -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <version>${junit.version}</version>
+            <scope>test</scope>
+        </dependency>
         <dependency>
             <groupId>org.mockito</groupId>
             <artifactId>mockito-all</artifactId>
             <version>${mockito.version}</version>
             <scope>test</scope>
         </dependency>
-        -->
         <dependency>
             <groupId>org.glassfish.jersey.test-framework</groupId>
             <artifactId>jersey-test-framework-core</artifactId>
@@ -78,7 +128,6 @@
             <version>${jersey.version}</version>
             <scope>test</scope>
         </dependency>
-
     </dependencies>
 
     <build>
@@ -86,17 +135,17 @@
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
-                <version>2.5.1</version>
+                <version>${maven.version}</version>
                 <inherited>true</inherited>
                 <configuration>
-                    <source>1.7</source>
-                    <target>1.7</target>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
                 </configuration>
             </plugin>
             <plugin>
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
-                <version>1.2.1</version>
+                <version>${mojo.version}</version>
                 <executions>
                     <execution>
                         <goals>
@@ -105,18 +154,11 @@
                     </execution>
                 </executions>
                 <configuration>
-                    <mainClass>org.revault.moneytransfer.Main</mainClass>
+                    <mainClass>org.revault.moneytransfer.MoneyTransferApp</mainClass>
                 </configuration>
             </plugin>
         </plugins>
     </build>
 
-    <properties>
-        <jersey.version>2.27</jersey.version>
-        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <h2database.version>1.4.190</h2database.version>
-        <hibernate.version>5.0.6.Final</hibernate.version>
-        <javax.transaction.version>1.1</javax.transaction.version>
-        <mockito.version>1.10.19</mockito.version>
-    </properties>
+
 </project>

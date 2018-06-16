@@ -10,11 +10,16 @@ import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
 import org.junit.Test;
 import org.revault.moneytransfer.api.data.Account;
+import org.revault.moneytransfer.api.data.Fail;
+import org.revault.moneytransfer.api.data.Transfer;
 import org.revault.moneytransfer.configure.ApplicationBinder;
+import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.service.TransactionService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Application;
+import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
 import static org.junit.Assert.assertEquals;
@@ -30,7 +35,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
         enable(TestProperties.DUMP_ENTITY);
         /*
         *  To bootstrap the tests we need register AbstractBinder in similar way as we do that
-        *  in Main() while starting ther server.
+        *  in MoneyTransferApp() while starting ther server.
         *  Whe need and instantiated object of TransactionService with instantiated AccountService
         *  to be injected into MoneyTransferResource.
         */
@@ -49,7 +54,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
     }
 
     @Test
-    public void testMoneyTransfer(){
+    public void testMoneyTransfer() throws DaoException{
         /*
          * During a test two accounts are created. A transaction is attempting make a money
          * transfer. It succeeds, amounts of both accounts are changed respectively.
@@ -59,19 +64,19 @@ public class MoneyTransferResourceTest extends JerseyTest {
         Account creditAccBefore = new Account("1111 1111 1111 1111", 1000L);
         transactionService.getAccountService().save(creditAccBefore);
 
-        Response response = target("moneytransfer/transfer")
-                .queryParam("debitAcc","0000 0000 0000 0000")
-                .queryParam("creditAcc", "1111 1111 1111 1111")
-                .queryParam("amount", 100L).request().get();
+        Transfer transfer = new Transfer("0000 0000 0000 0000", "1111 1111 1111 1111", 100L);
+        Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
-        Account debitAccAfter = transactionService.getAccountService().retreive("0000 0000 0000 0000");
-        Account creditAccAfter = transactionService.getAccountService().retreive("1111 1111 1111 1111");
+        Response response = target("moneytransfer/transfer").request().put(transferEntity);
+
+        Account debitAccAfter = transactionService.getAccountService().retrieve("0000 0000 0000 0000");
+        Account creditAccAfter = transactionService.getAccountService().retrieve("1111 1111 1111 1111");
         assertEquals(900L, (long)debitAccAfter.getAmount());
         assertEquals(1100L, (long)creditAccAfter.getAmount());
     }
 
     @Test
-    public void testMoneyTransferNotEnough(){
+    public void testMoneyTransferNotEnough() throws DaoException {
         /*
          * During a test two accounts are created. A transaction is attempting make a money
          * transfer, but amount of the transactions exceeds an amount on the debit account.
@@ -83,21 +88,20 @@ public class MoneyTransferResourceTest extends JerseyTest {
         Account creditAccBefore = new Account("3333 3333 3333 3333", 1000L);
         transactionService.getAccountService().save(creditAccBefore);
 
-        Response response = target("moneytransfer/transfer")
-                .queryParam("debitAcc","2222 2222 2222 2222")
-                .queryParam("creditAcc", "3333 3333 3333 3333")
-                .queryParam("amount", 1100L).request().get();
+        Transfer transfer = new Transfer("2222 2222 2222 2222", "3333 3333 3333 3333", 1100L);
+        Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
+        Response response = target("moneytransfer/transfer").request().put(transferEntity);
 
-        Account debitAccAfter = transactionService.getAccountService().retreive("2222 2222 2222 2222");
-        Account creditAccAfter = transactionService.getAccountService().retreive("3333 3333 3333 3333");
+        Account debitAccAfter = transactionService.getAccountService().retrieve("2222 2222 2222 2222");
+        Account creditAccAfter = transactionService.getAccountService().retrieve("3333 3333 3333 3333");
         assertEquals(1000L, (long)debitAccAfter.getAmount());
         assertEquals(1000L, (long)creditAccAfter.getAmount());
         assertEquals("Precondition Failed", response.getStatusInfo().getReasonPhrase());
         /*
          * The error messages returned from the service are driven by err.Error enum
          */
-        assertEquals("1001: Not enough money on the debit accout.", response.readEntity(String.class));
+        assertEquals("1001: Not enough money on the debit accout.", response.readEntity(Fail.class).getMessage());
     }
 
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {

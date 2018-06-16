@@ -1,5 +1,6 @@
 package org.revault.moneytransfer.service;
 
+import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.err.ServiceExeption;
 
 public interface TransactionService {

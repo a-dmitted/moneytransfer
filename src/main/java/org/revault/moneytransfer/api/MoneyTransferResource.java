@@ -1,5 +1,9 @@
 package org.revault.moneytransfer.api;
 
+import org.revault.moneytransfer.api.data.Fail;
+import org.revault.moneytransfer.api.data.Success;
+import org.revault.moneytransfer.api.data.Transfer;
+import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.err.ServiceExeption;
 import org.revault.moneytransfer.service.TransactionService;
 
@@ -18,31 +22,29 @@ public class MoneyTransferResource {
         this.transactionService = transactionService;
     }
 
-    @GET
+    @PUT
     @Path(value = "transfer")
     @Consumes(MediaType.APPLICATION_JSON)
-    public Response makeTransfer(
-        @QueryParam("debitAcc") String debitAcc,
-        @QueryParam("creditAcc") String creditAcc,
-        @QueryParam("amount") Long amount
-    )
+    public Response makeTransfer(Transfer transfer)
     {
         try{
-            transactionService.makeTransfer(debitAcc, creditAcc, amount);
+            transactionService.makeTransfer(
+                    transfer.getDebitAcc(),
+                    transfer.getCreditAcc(),
+                    transfer.getAmount()
+            );
         }
         catch(ServiceExeption ex){
-            return Response.status(Response.Status.PRECONDITION_FAILED).entity(ex.getError().toString()).type(MediaType.APPLICATION_JSON).build();
+            return Response.status(Response.Status.PRECONDITION_FAILED)
+                    //.entity(ex.getError().toString())
+                    .entity(new Fail(ex.getError().toString()))
+                    .type(MediaType.APPLICATION_JSON)
+                    .build();
         }
 
-        return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
+        return Response.status(Response.Status.OK)
+                .entity(new Success("Transfer has been successfully completed"))
+                .type(MediaType.APPLICATION_JSON)
+                .build();
     }
-
-    /*
-    @GET
-    @Path(value = "dummy")
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response dummyResponse() {
-        return Response.status(Response.Status.OK).entity("transaction has been successfully completed").type(MediaType.APPLICATION_JSON).build();
-    }
-    */
 }

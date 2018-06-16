@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
 import org.revault.moneytransfer.entity.AccountEntity;
+import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.service.TransactionService;
 
 import javax.inject.Inject;
@@ -51,7 +52,7 @@ public class AccountResourceTest extends JerseyTest {
     }
 
     @Test
-    public void testRetreiveAnAccount(){
+    public void testRetreiveAnAccount() throws DaoException {
         Account account = new Account("0000 0000 0000 0000", 1000L);
         transactionService.getAccountService().save(account);
 
@@ -62,11 +63,11 @@ public class AccountResourceTest extends JerseyTest {
     }
 
     @Test
-    public void testSaveAnAccount(){
+    public void testSaveAnAccount() throws DaoException {
         Account account = new Account("1111 1111 1111 1111", 1000L);
         Entity<Account> accountEntity = Entity.entity(account, MediaType.APPLICATION_JSON_TYPE);
         Response response = target("accountresource/save").request().post(accountEntity);
-        Account createdAccount = transactionService.getAccountService().retreive("1111 1111 1111 1111");
+        Account createdAccount = transactionService.getAccountService().retrieve("1111 1111 1111 1111");
         assertEquals(1000L, (long)createdAccount.getAmount());
     }
 

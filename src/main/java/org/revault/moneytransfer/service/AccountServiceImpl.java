@@ -2,36 +2,34 @@ package org.revault.moneytransfer.service;
 
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.entity.AccountEntity;
+import org.revault.moneytransfer.err.DaoException;
 
 import javax.inject.Singleton;
-import javax.persistence.EntityManager;
-import javax.persistence.EntityManagerFactory;
-import javax.persistence.EntityTransaction;
-import javax.persistence.Persistence;
+import javax.persistence.*;
+
+import static org.revault.moneytransfer.err.Error.*;
 
 @Singleton
 public class AccountServiceImpl implements AccountService{
     private EntityManagerFactory emf = Persistence.createEntityManagerFactory("moneytransfer-unit");
     private EntityManager em = emf.createEntityManager();
     @Override
-    public Account retreive(String number){
+    public Account retrieve(String number) throws DaoException{
         AccountEntity accountEntity = null;
 
         try {
             accountEntity = em.find(AccountEntity.class, number);
         }catch (Exception e) {
-            System.out.println("Error retreiving AccountEntity: " + e.getMessage());
+            throw new DaoException(RETRIEVING_ERR);
         }
-        /*
-        finally {
-            em.close();
-        }*/
+
+        if (accountEntity==null) throw new DaoException(RETRIEVING_ERR);
 
         return entityToAccount(accountEntity);
     }
 
     @Override
-    public void delete(String number) {
+    public void delete(String number) throws DaoException {
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -40,7 +38,7 @@ public class AccountServiceImpl implements AccountService{
             AccountEntity accountEntity = em.find(AccountEntity.class, number);
 
             if(accountEntity == null) {
-                System.out.println("Error deleting AccountEntity: AccountEntity not found");
+                throw new DaoException(DELETING_ERR);
             }
             else {
                 em.remove(accountEntity);
@@ -48,17 +46,13 @@ public class AccountServiceImpl implements AccountService{
 
             transaction.commit();
         } catch (Exception e) {
-            System.out.println("Error deleting AccountEntity: " + e.getMessage());
-
-            transaction.rollback();
-        } /*
-        finally {
-            em.close();
-        }*/
+            rollbackAtcitveTran(transaction);
+            throw new DaoException(DELETING_ERR);
+        }
     }
 
     @Override
-    public void save(Account account) {
+    public void save(Account account)  throws DaoException{
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -68,16 +62,13 @@ public class AccountServiceImpl implements AccountService{
 
             transaction.commit();
         } catch (Exception e) {
-            System.out.println("Error saving AccountEntity: " + e.getMessage());
-
-            transaction.rollback();
-        } /*finally {
-            em.close();
-        }*/
+            rollbackAtcitveTran(transaction);
+            throw new DaoException(SAVING_ERR);
+        }
     }
 
     @Override
-    public void saveTwo(Account account1, Account account2){
+    public void saveTwo(Account account1, Account account2) throws DaoException {
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -88,12 +79,20 @@ public class AccountServiceImpl implements AccountService{
 
             transaction.commit();
         } catch (Exception e) {
-            System.out.println("Error saving two Accounts: " + e.getMessage());
+            rollbackAtcitveTran(transaction);
+            throw new DaoException(SAVING_TWO_ERR);
 
-            transaction.rollback();
-        } /*finally {
-            em.close();
-        }*/
+        }
+    }
+
+    private void rollbackAtcitveTran(EntityTransaction txn) throws DaoException{
+        if (txn.isActive()) {
+            try {
+                txn.rollback();
+            } catch (PersistenceException | IllegalStateException e) {
+                throw new DaoException(ROLLBACK_ERR);
+            }
+        }
     }
 
     // =========== Helpers ================
