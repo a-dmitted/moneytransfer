@@ -73,44 +73,50 @@ public class MoneyTransferResourceTest extends JerseyTest {
          * During a test two accounts are created. A transaction is attempting make a money
          * transfer. It succeeds, amounts of both accounts are changed respectively.
          */
-        Account debitAccBefore = new Account("0000 0000 0000 0000", 1000L);
+        final String DEBIT_ACC = "0000 0000 0000 0000";
+        final String CREDIT_ACC = "1111 1111 1111 1111";
+        final long INITIAL_AMOUNT = 1000L;
+        final long AMOUNT_OF_TRANSFER = 100L;
+        Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
         transactionService.getAccountService().save(debitAccBefore);
-        Account creditAccBefore = new Account("1111 1111 1111 1111", 1000L);
+        Account creditAccBefore = new Account(CREDIT_ACC, INITIAL_AMOUNT);
         transactionService.getAccountService().save(creditAccBefore);
 
-        Transfer transfer = new Transfer("0000 0000 0000 0000", "1111 1111 1111 1111", 100L);
+        Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC, AMOUNT_OF_TRANSFER);
         Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
         Response response = target("moneytransfer/transfer").request().put(transferEntity);
 
-        Account debitAccAfter = transactionService.getAccountService().retrieve("0000 0000 0000 0000");
-        Account creditAccAfter = transactionService.getAccountService().retrieve("1111 1111 1111 1111");
-        assertEquals(900L, (long)debitAccAfter.getAmount());
-        assertEquals(1100L, (long)creditAccAfter.getAmount());
+        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
+        Account creditAccAfter = transactionService.getAccountService().retrieve(CREDIT_ACC);
+        assertEquals(INITIAL_AMOUNT-AMOUNT_OF_TRANSFER, (long)debitAccAfter.getAmount());
+        assertEquals(INITIAL_AMOUNT+AMOUNT_OF_TRANSFER, (long)creditAccAfter.getAmount());
     }
 
     @Test
     public void testMoneyTransferNotEnough() throws DaoException {
         /*
          * During a test two accounts are created. A transaction is attempting make a money
-         * transfer, but amount of the transactions exceeds an amount on the debit account.
-         * Exception is being thrown. The amounts of both accounts left unchanged.
-         * Service returns a predefined error message.
+         * transfer. It fails, as there is not enough money on the debit account.
          */
-        Account debitAccBefore = new Account("2222 2222 2222 2222", 1000L);
+        final String DEBIT_ACC = "2222 2222 2222 2222";
+        final String CREDIT_ACC = "3333 3333 3333 3333";
+        final long INITIAL_AMOUNT = 1000L;
+        final long AMOUNT_OF_TRANSFER = 1100L;
+        Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
         transactionService.getAccountService().save(debitAccBefore);
-        Account creditAccBefore = new Account("3333 3333 3333 3333", 1000L);
+        Account creditAccBefore = new Account(CREDIT_ACC, INITIAL_AMOUNT);
         transactionService.getAccountService().save(creditAccBefore);
 
-        Transfer transfer = new Transfer("2222 2222 2222 2222", "3333 3333 3333 3333", 1100L);
+        Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC, AMOUNT_OF_TRANSFER);
         Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
         Response response = target("moneytransfer/transfer").request().put(transferEntity);
 
-        Account debitAccAfter = transactionService.getAccountService().retrieve("2222 2222 2222 2222");
-        Account creditAccAfter = transactionService.getAccountService().retrieve("3333 3333 3333 3333");
-        assertEquals(1000L, (long)debitAccAfter.getAmount());
-        assertEquals(1000L, (long)creditAccAfter.getAmount());
+        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
+        Account creditAccAfter = transactionService.getAccountService().retrieve(CREDIT_ACC);
+        assertEquals(INITIAL_AMOUNT, (long)debitAccAfter.getAmount());
+        assertEquals(INITIAL_AMOUNT, (long)creditAccAfter.getAmount());
         assertEquals("Precondition Failed", response.getStatusInfo().getReasonPhrase());
         /*
          * The error messages returned from the service are driven by err.Error enum
@@ -121,24 +127,27 @@ public class MoneyTransferResourceTest extends JerseyTest {
     @Test
     public void testMoneyTransferConcurrent() throws DaoException, InterruptedException {
         /*
-         * During a test two accounts are created. A transaction is attempting make a money
-         * transfer. It succeeds, amounts of both accounts are changed respectively.
+         * During a test three accounts are created. Two transactions in different threads are attempting to make a
+         * money transfer, from account D to accounts C1 and C2. But C1 and C2 are locked by the other transaction.
+         * Due to PESSIMISTIC LOCKING mode both transactions will be serialized.
          */
-
         final Semaphore available = new Semaphore(2, true);
-
-        Account debitAccBefore = new Account("1000 0000 0000 0000", 1000L);
+        final String DEBIT_ACC = "1000 0000 0000 0000";
+        final String CREDIT_ACC1 = "1000 0000 0000 1111";
+        final String CREDIT_ACC2 = "1000 0000 0000 2222";
+        final Long INITIAL_AMOUNT = 1000L;
+        final Long AMOUNT_OF_TRANSFER = 100L;
+        Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
         transactionService.getAccountService().save(debitAccBefore);
-        Account creditAccBefore1 = new Account("1000 0000 0000 1111", 1000L);
+        Account creditAccBefore1 = new Account(CREDIT_ACC1, INITIAL_AMOUNT);
         transactionService.getAccountService().save(creditAccBefore1);
-        Account creditAccBefore2 = new Account("1000 0000 0000 2222", 1000L);
+        Account creditAccBefore2 = new Account(CREDIT_ACC2, INITIAL_AMOUNT);
         transactionService.getAccountService().save(creditAccBefore2);
 
         Thread thread1 = new Thread(()->{
             try {
                 available.acquire();
                 available.acquire();
-                //LOGGER.info("Semaphore has been aquired...");
             }catch(InterruptedException ex){ };
             EntityManager em = transactionService.getAccountService().getEmf().createEntityManager();
             EntityTransaction tx = em.getTransaction();
@@ -156,7 +165,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
             available.release();
             available.release();
             try{
-                sleep(3000);
+                sleep(2000);
             }catch(Exception ex){};
             LOGGER.info("Releasing credit accounts...");
             tx.commit();
@@ -165,12 +174,10 @@ public class MoneyTransferResourceTest extends JerseyTest {
 
         Thread thread2 = new Thread(()-> {
             try {
-                try{
-                    sleep(1000);
-                }catch(Exception ex){};
+                try{sleep(1000);}catch(Exception ex){};
                 available.acquire();
                 LOGGER.info("Transaction 1 has begun...");
-                Transfer transfer = new Transfer("1000 0000 0000 0000", "1000 0000 0000 1111", 100L);
+                Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC1, AMOUNT_OF_TRANSFER);
                 Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
                 Response response = target("moneytransfer/transfer").request().put(transferEntity);
                 LOGGER.info("Transaction 1 has finished...");
@@ -182,12 +189,10 @@ public class MoneyTransferResourceTest extends JerseyTest {
 
         Thread thread3 = new Thread(()-> {
             try {
-                try{
-                    sleep(1000);
-                }catch(Exception ex){};
+                try{sleep(1000);}catch(Exception ex){};
                 available.acquire();
                 LOGGER.info("Transaction 2 has begun...");
-                Transfer transfer = new Transfer("1000 0000 0000 0000", "1000 0000 0000 2222", 100L);
+                Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC2, AMOUNT_OF_TRANSFER);
                 Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
                 Response response = target("moneytransfer/transfer").request().put(transferEntity);
                 LOGGER.info("Transaction 2 has finished...");
@@ -204,14 +209,12 @@ public class MoneyTransferResourceTest extends JerseyTest {
         thread2.join();
         thread3.join();
 
-
-        Account debitAccAfter = transactionService.getAccountService().retrieve("1000 0000 0000 0000");
-        Account creditAccAfter1 = transactionService.getAccountService().retrieve("1000 0000 0000 1111");
-        Account creditAccAfter2 = transactionService.getAccountService().retrieve("1000 0000 0000 2222");
-        //assertEquals(900L, (long)debitAccAfter.getAmount());
-        //assertEquals(1100L, (long)creditAccAfter.getAmount());
-
-
+        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
+        Account creditAccAfter1 = transactionService.getAccountService().retrieve(CREDIT_ACC1);
+        Account creditAccAfter2 = transactionService.getAccountService().retrieve(CREDIT_ACC2);
+        assertEquals(INITIAL_AMOUNT - 2*AMOUNT_OF_TRANSFER, (long)debitAccAfter.getAmount());
+        assertEquals(INITIAL_AMOUNT + AMOUNT_OF_TRANSFER, (long)creditAccAfter1.getAmount());
+        assertEquals(INITIAL_AMOUNT + AMOUNT_OF_TRANSFER, (long)creditAccAfter2.getAmount());
     }
 
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
