@@ -18,19 +18,10 @@ public class TransactionServiceImpl implements TransactionService{
     @Override
     public void makeTransfer(String debitAcc, String creditAcc, Long amount) throws ServiceExeption {
         try{
-           Account debitAccountEntity = accountService.retrieve(debitAcc);
-           Account creditAccountEntity = accountService.retrieve(creditAcc);
-           if(isEnough(debitAccountEntity, amount)){
-               debitAccountEntity.setAmount(debitAccountEntity.getAmount()-amount);
-               creditAccountEntity.setAmount(creditAccountEntity.getAmount()+amount);
-               accountService.saveTwo(debitAccountEntity, creditAccountEntity);
-           }
-           else{
-               throw new ServiceExeption(NOT_ENOUGH_MONEY);
-           }
+           accountService.makeTransfer(debitAcc,creditAcc,amount);
         }
-        catch(DaoException ex){
-            throw new ServiceExeption(DATA_LAYER_ERR);
+        catch(ServiceExeption ex){
+            throw ex;
         }
     }
     @Override

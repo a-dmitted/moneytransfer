@@ -8,24 +8,37 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
+import org.junit.Before;
 import org.junit.Test;
+import org.revault.moneytransfer.MoneyTransferApp;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.api.data.Fail;
 import org.revault.moneytransfer.api.data.Transfer;
 import org.revault.moneytransfer.configure.ApplicationBinder;
+import org.revault.moneytransfer.entity.AccountEntity;
 import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.service.TransactionService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import javax.persistence.*;
+import javax.transaction.Transaction;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
+import java.util.concurrent.Semaphore;
+
+import static java.lang.Thread.sleep;
 import static org.junit.Assert.assertEquals;
 
 
 public class MoneyTransferResourceTest extends JerseyTest {
+    private final static Logger LOGGER = LoggerFactory.getLogger(MoneyTransferApp.class);
+
     @Inject
     private TransactionService transactionService;
 
@@ -52,6 +65,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
 
         return config;
     }
+
 
     @Test
     public void testMoneyTransfer() throws DaoException{
@@ -102,6 +116,102 @@ public class MoneyTransferResourceTest extends JerseyTest {
          * The error messages returned from the service are driven by err.Error enum
          */
         assertEquals("1001: Not enough money on the debit accout.", response.readEntity(Fail.class).getMessage());
+    }
+
+    @Test
+    public void testMoneyTransferConcurrent() throws DaoException, InterruptedException {
+        /*
+         * During a test two accounts are created. A transaction is attempting make a money
+         * transfer. It succeeds, amounts of both accounts are changed respectively.
+         */
+
+        final Semaphore available = new Semaphore(2, true);
+
+        Account debitAccBefore = new Account("1000 0000 0000 0000", 1000L);
+        transactionService.getAccountService().save(debitAccBefore);
+        Account creditAccBefore1 = new Account("1000 0000 0000 1111", 1000L);
+        transactionService.getAccountService().save(creditAccBefore1);
+        Account creditAccBefore2 = new Account("1000 0000 0000 2222", 1000L);
+        transactionService.getAccountService().save(creditAccBefore2);
+
+        Thread thread1 = new Thread(()->{
+            try {
+                available.acquire();
+                available.acquire();
+                //LOGGER.info("Semaphore has been aquired...");
+            }catch(InterruptedException ex){ };
+            EntityManager em = transactionService.getAccountService().getEmf().createEntityManager();
+            EntityTransaction tx = em.getTransaction();
+            tx.begin();
+            LOGGER.info("Locking credit accounts...");
+            em.createQuery("select a from AccountEntity a where a.number = :accountNumber", AccountEntity.class)
+                    .setParameter("accountNumber", creditAccBefore1.getNumber())
+                    .setLockMode(LockModeType.PESSIMISTIC_READ)
+                    .getResultList();
+            em.createQuery("select a from AccountEntity a where a.number = :accountNumber", AccountEntity.class)
+                    .setParameter("accountNumber", creditAccBefore2.getNumber())
+                    .setLockMode(LockModeType.PESSIMISTIC_READ)
+                    .getResultList();
+
+            available.release();
+            available.release();
+            try{
+                sleep(3000);
+            }catch(Exception ex){};
+            LOGGER.info("Releasing credit accounts...");
+            tx.commit();
+
+        });
+
+        Thread thread2 = new Thread(()-> {
+            try {
+                try{
+                    sleep(1000);
+                }catch(Exception ex){};
+                available.acquire();
+                LOGGER.info("Transaction 1 has begun...");
+                Transfer transfer = new Transfer("1000 0000 0000 0000", "1000 0000 0000 1111", 100L);
+                Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
+                Response response = target("moneytransfer/transfer").request().put(transferEntity);
+                LOGGER.info("Transaction 1 has finished...");
+                available.release();
+            } catch (InterruptedException ex) {
+            }
+            ;
+        });
+
+        Thread thread3 = new Thread(()-> {
+            try {
+                try{
+                    sleep(1000);
+                }catch(Exception ex){};
+                available.acquire();
+                LOGGER.info("Transaction 2 has begun...");
+                Transfer transfer = new Transfer("1000 0000 0000 0000", "1000 0000 0000 2222", 100L);
+                Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
+                Response response = target("moneytransfer/transfer").request().put(transferEntity);
+                LOGGER.info("Transaction 2 has finished...");
+                available.release();
+            } catch (InterruptedException ex) {
+            }
+            ;
+        });
+
+        thread1.start();
+        thread2.start();
+        thread3.start();
+        thread1.join();
+        thread2.join();
+        thread3.join();
+
+
+        Account debitAccAfter = transactionService.getAccountService().retrieve("1000 0000 0000 0000");
+        Account creditAccAfter1 = transactionService.getAccountService().retrieve("1000 0000 0000 1111");
+        Account creditAccAfter2 = transactionService.getAccountService().retrieve("1000 0000 0000 2222");
+        //assertEquals(900L, (long)debitAccAfter.getAmount());
+        //assertEquals(1100L, (long)creditAccAfter.getAmount());
+
+
     }
 
     class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {

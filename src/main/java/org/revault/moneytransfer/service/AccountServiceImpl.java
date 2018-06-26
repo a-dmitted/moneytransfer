@@ -3,6 +3,7 @@ package org.revault.moneytransfer.service;
 import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.entity.AccountEntity;
 import org.revault.moneytransfer.err.DaoException;
+import org.revault.moneytransfer.err.ServiceExeption;
 
 import javax.inject.Singleton;
 import javax.persistence.*;
@@ -12,11 +13,10 @@ import static org.revault.moneytransfer.err.Error.*;
 @Singleton
 public class AccountServiceImpl implements AccountService{
     private EntityManagerFactory emf = Persistence.createEntityManagerFactory("moneytransfer-unit");
-    private EntityManager em = emf.createEntityManager();
     @Override
     public Account retrieve(String number) throws DaoException{
+        EntityManager em = emf.createEntityManager();
         AccountEntity accountEntity = null;
-
         try {
             accountEntity = em.find(AccountEntity.class, number);
         }catch (Exception e) {
@@ -30,6 +30,7 @@ public class AccountServiceImpl implements AccountService{
 
     @Override
     public void delete(String number) throws DaoException {
+        EntityManager em = emf.createEntityManager();
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -53,6 +54,7 @@ public class AccountServiceImpl implements AccountService{
 
     @Override
     public void save(Account account)  throws DaoException{
+        EntityManager em = emf.createEntityManager();
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -69,6 +71,7 @@ public class AccountServiceImpl implements AccountService{
 
     @Override
     public void saveTwo(Account account1, Account account2) throws DaoException {
+        EntityManager em = emf.createEntityManager();
         EntityTransaction transaction = em.getTransaction();
 
         try {
@@ -85,6 +88,34 @@ public class AccountServiceImpl implements AccountService{
         }
     }
 
+    @Override
+    public void makeTransfer(String debitAcc, String creditAcc, Long amount) throws ServiceExeption {
+        try{
+            EntityManager em = emf.createEntityManager();
+            EntityTransaction transaction = em.getTransaction();
+            transaction.begin();
+            AccountEntity debitAccountEntity = em.find(AccountEntity.class, debitAcc, LockModeType.PESSIMISTIC_WRITE);
+            AccountEntity creditAccountEntity = em.find(AccountEntity.class, creditAcc, LockModeType.PESSIMISTIC_WRITE);
+            if(isEnough(debitAccountEntity, amount)){
+                debitAccountEntity.setAmount(debitAccountEntity.getAmount()-amount);
+                creditAccountEntity.setAmount(creditAccountEntity.getAmount()+amount);
+                em.merge(debitAccountEntity);
+                em.merge(creditAccountEntity);
+                transaction.commit();
+            }
+            else{
+                rollbackAtcitveTran(transaction);
+                throw new ServiceExeption(NOT_ENOUGH_MONEY);
+            }
+        }
+        catch(ServiceExeption ex){
+            throw ex;
+        }
+        catch(Exception ex){
+            throw new ServiceExeption(DATA_LAYER_ERR);
+        }
+    }
+
     private void rollbackAtcitveTran(EntityTransaction txn) throws DaoException{
         if (txn.isActive()) {
             try {
@@ -93,6 +124,11 @@ public class AccountServiceImpl implements AccountService{
                 throw new DaoException(ROLLBACK_ERR);
             }
         }
+    }
+
+    @Override
+    public EntityManagerFactory getEmf() {
+        return emf;
     }
 
     // =========== Helpers ================
@@ -115,5 +151,13 @@ public class AccountServiceImpl implements AccountService{
         }
 
         return entity;
+    }
+
+    private boolean isEnough(AccountEntity account, Long amount){
+        if(account.getAmount()>=amount)
+            return true;
+        else
+            return false;
+
     }
 }
