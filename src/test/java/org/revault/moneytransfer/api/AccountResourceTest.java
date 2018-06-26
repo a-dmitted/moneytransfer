@@ -14,7 +14,7 @@ import org.revault.moneytransfer.api.data.Account;
 import org.revault.moneytransfer.configure.ApplicationBinder;
 import org.revault.moneytransfer.entity.AccountEntity;
 import org.revault.moneytransfer.err.DaoException;
-import org.revault.moneytransfer.service.TransactionService;
+import org.revault.moneytransfer.service.AccountService;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -28,7 +28,7 @@ import static org.junit.Assert.assertEquals;
 public class AccountResourceTest extends JerseyTest {
 
     @Inject
-    private TransactionService transactionService;
+    private AccountService accountService;
 
 
     @Override
@@ -42,7 +42,7 @@ public class AccountResourceTest extends JerseyTest {
         final Binder b = new AbstractBinder() {
             @Override
             public void configure() {
-                bindAsContract(TransactionService.class);
+                bindAsContract(AccountResource.class);
             }
         };
         final ServiceLocator locator = ServiceLocatorUtilities.bind(new ApplicationBinder(), b);
@@ -53,37 +53,42 @@ public class AccountResourceTest extends JerseyTest {
 
     @Test
     public void testRetreiveAnAccount() throws DaoException {
-        Account account = new Account("0000 0000 0000 0000", 1000L);
-        transactionService.getAccountService().save(account);
+        final String ACC = "0000 1000 0000 0000";
+        final long INITIAL_AMOUNT = 1000L;
+        Account account = new Account(ACC, INITIAL_AMOUNT);
+        accountService.save(account);
 
-        Response response = target("accountresource/retrieve/0000 0000 0000 0000").request().get();
+        Response response = target("accountresource/retrieve/"+ACC).request().get();
         AccountEntity account1 = response.readEntity(AccountEntity.class);
 
-        assertEquals(1000L, (long)account1.getAmount());
+        assertEquals(INITIAL_AMOUNT, (long)account1.getAmount());
     }
 
     @Test
     public void testSaveAnAccount() throws DaoException {
-        Account account = new Account("1111 1111 1111 1111", 1000L);
+        final String ACC = "0000 2000 0000 0000";
+        final long INITIAL_AMOUNT = 1000L;
+        Account account = new Account(ACC, INITIAL_AMOUNT);
         Entity<Account> accountEntity = Entity.entity(account, MediaType.APPLICATION_JSON_TYPE);
         Response response = target("accountresource/save").request().post(accountEntity);
-        Account createdAccount = transactionService.getAccountService().retrieve("1111 1111 1111 1111");
-        assertEquals(1000L, (long)createdAccount.getAmount());
+        Account createdAccount = accountService.retrieve(ACC);
+        assertEquals(INITIAL_AMOUNT, (long)createdAccount.getAmount());
     }
 
-    class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
+
+    class InjectableProvider extends AbstractBinder implements Factory<AccountService> {
 
         @Override
         protected void configure() {
-            bindFactory(this).to(TransactionService.class).in(Singleton.class);
+            bindFactory(this).to(AccountService.class).in(Singleton.class);
         }
 
-        public TransactionService provide() {
-            return transactionService;
+        public AccountService provide() {
+            return accountService;
         }
 
-        public void dispose(TransactionService service) {
-            transactionService = null;
+        public void dispose(AccountService service) {
+            accountService = null;
         }
     }
 

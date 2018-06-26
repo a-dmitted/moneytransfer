@@ -8,7 +8,6 @@ import org.glassfish.hk2.utilities.binding.AbstractBinder;
 import org.glassfish.jersey.server.ResourceConfig;
 import org.glassfish.jersey.test.JerseyTest;
 import org.glassfish.jersey.test.TestProperties;
-import org.junit.Before;
 import org.junit.Test;
 import org.revault.moneytransfer.MoneyTransferApp;
 import org.revault.moneytransfer.api.data.Account;
@@ -17,14 +16,13 @@ import org.revault.moneytransfer.api.data.Transfer;
 import org.revault.moneytransfer.configure.ApplicationBinder;
 import org.revault.moneytransfer.entity.AccountEntity;
 import org.revault.moneytransfer.err.DaoException;
-import org.revault.moneytransfer.service.TransactionService;
+import org.revault.moneytransfer.service.AccountService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.persistence.*;
-import javax.transaction.Transaction;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.core.Application;
 import javax.ws.rs.core.MediaType;
@@ -40,7 +38,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
     private final static Logger LOGGER = LoggerFactory.getLogger(MoneyTransferApp.class);
 
     @Inject
-    private TransactionService transactionService;
+    private AccountService accountService;
 
     @Override
     protected Application configure() {
@@ -49,7 +47,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
         /*
         *  To bootstrap the tests we need register AbstractBinder in similar way as we do that
         *  in MoneyTransferApp() while starting ther server.
-        *  Whe need and instantiated object of TransactionService with instantiated AccountService
+        *  Whe need and instantiated object of AccountService
         *  to be injected into MoneyTransferResource.
         */
         ResourceConfig config = new ResourceConfig(MoneyTransferResource.class, AccountResource.class);
@@ -57,7 +55,7 @@ public class MoneyTransferResourceTest extends JerseyTest {
         final Binder b = new AbstractBinder() {
             @Override
             public void configure() {
-                bindAsContract(TransactionService.class);
+                bindAsContract(AccountResource.class);
             }
         };
         final ServiceLocator locator = ServiceLocatorUtilities.bind(new ApplicationBinder(), b);
@@ -78,17 +76,17 @@ public class MoneyTransferResourceTest extends JerseyTest {
         final long INITIAL_AMOUNT = 1000L;
         final long AMOUNT_OF_TRANSFER = 100L;
         Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(debitAccBefore);
+        accountService.save(debitAccBefore);
         Account creditAccBefore = new Account(CREDIT_ACC, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(creditAccBefore);
+        accountService.save(creditAccBefore);
 
         Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC, AMOUNT_OF_TRANSFER);
         Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
         Response response = target("moneytransfer/transfer").request().put(transferEntity);
 
-        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
-        Account creditAccAfter = transactionService.getAccountService().retrieve(CREDIT_ACC);
+        Account debitAccAfter = accountService.retrieve(DEBIT_ACC);
+        Account creditAccAfter = accountService.retrieve(CREDIT_ACC);
         assertEquals(INITIAL_AMOUNT-AMOUNT_OF_TRANSFER, (long)debitAccAfter.getAmount());
         assertEquals(INITIAL_AMOUNT+AMOUNT_OF_TRANSFER, (long)creditAccAfter.getAmount());
     }
@@ -104,17 +102,17 @@ public class MoneyTransferResourceTest extends JerseyTest {
         final long INITIAL_AMOUNT = 1000L;
         final long AMOUNT_OF_TRANSFER = 1100L;
         Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(debitAccBefore);
+        accountService.save(debitAccBefore);
         Account creditAccBefore = new Account(CREDIT_ACC, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(creditAccBefore);
+        accountService.save(creditAccBefore);
 
         Transfer transfer = new Transfer(DEBIT_ACC, CREDIT_ACC, AMOUNT_OF_TRANSFER);
         Entity<Transfer> transferEntity = Entity.entity(transfer, MediaType.APPLICATION_JSON_TYPE);
 
         Response response = target("moneytransfer/transfer").request().put(transferEntity);
 
-        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
-        Account creditAccAfter = transactionService.getAccountService().retrieve(CREDIT_ACC);
+        Account debitAccAfter = accountService.retrieve(DEBIT_ACC);
+        Account creditAccAfter = accountService.retrieve(CREDIT_ACC);
         assertEquals(INITIAL_AMOUNT, (long)debitAccAfter.getAmount());
         assertEquals(INITIAL_AMOUNT, (long)creditAccAfter.getAmount());
         assertEquals("Precondition Failed", response.getStatusInfo().getReasonPhrase());
@@ -138,18 +136,18 @@ public class MoneyTransferResourceTest extends JerseyTest {
         final Long INITIAL_AMOUNT = 1000L;
         final Long AMOUNT_OF_TRANSFER = 100L;
         Account debitAccBefore = new Account(DEBIT_ACC, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(debitAccBefore);
+        accountService.save(debitAccBefore);
         Account creditAccBefore1 = new Account(CREDIT_ACC1, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(creditAccBefore1);
+        accountService.save(creditAccBefore1);
         Account creditAccBefore2 = new Account(CREDIT_ACC2, INITIAL_AMOUNT);
-        transactionService.getAccountService().save(creditAccBefore2);
+        accountService.save(creditAccBefore2);
 
         Thread thread1 = new Thread(()->{
             try {
                 available.acquire();
                 available.acquire();
             }catch(InterruptedException ex){ };
-            EntityManager em = transactionService.getAccountService().getEmf().createEntityManager();
+            EntityManager em = accountService.getEmf().createEntityManager();
             EntityTransaction tx = em.getTransaction();
             tx.begin();
             LOGGER.info("Locking credit accounts...");
@@ -209,27 +207,27 @@ public class MoneyTransferResourceTest extends JerseyTest {
         thread2.join();
         thread3.join();
 
-        Account debitAccAfter = transactionService.getAccountService().retrieve(DEBIT_ACC);
-        Account creditAccAfter1 = transactionService.getAccountService().retrieve(CREDIT_ACC1);
-        Account creditAccAfter2 = transactionService.getAccountService().retrieve(CREDIT_ACC2);
+        Account debitAccAfter = accountService.retrieve(DEBIT_ACC);
+        Account creditAccAfter1 = accountService.retrieve(CREDIT_ACC1);
+        Account creditAccAfter2 = accountService.retrieve(CREDIT_ACC2);
         assertEquals(INITIAL_AMOUNT - 2*AMOUNT_OF_TRANSFER, (long)debitAccAfter.getAmount());
         assertEquals(INITIAL_AMOUNT + AMOUNT_OF_TRANSFER, (long)creditAccAfter1.getAmount());
         assertEquals(INITIAL_AMOUNT + AMOUNT_OF_TRANSFER, (long)creditAccAfter2.getAmount());
     }
 
-    class InjectableProvider extends AbstractBinder implements Factory<TransactionService> {
+    class InjectableProvider extends AbstractBinder implements Factory<AccountService> {
 
         @Override
         protected void configure() {
-            bindFactory(this).to(TransactionService.class).in(Singleton.class);
+            bindFactory(this).to(AccountService.class).in(Singleton.class);
         }
 
-        public TransactionService provide() {
-            return transactionService;
+        public AccountService provide() {
+            return accountService;
         }
 
-        public void dispose(TransactionService service) {
-            transactionService = null;
+        public void dispose(AccountService service) {
+            accountService = null;
         }
     }
 }

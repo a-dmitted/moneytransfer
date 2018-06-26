@@ -3,9 +3,8 @@ package org.revault.moneytransfer.api;
 import org.revault.moneytransfer.api.data.Fail;
 import org.revault.moneytransfer.api.data.Success;
 import org.revault.moneytransfer.api.data.Transfer;
-import org.revault.moneytransfer.err.DaoException;
 import org.revault.moneytransfer.err.ServiceExeption;
-import org.revault.moneytransfer.service.TransactionService;
+import org.revault.moneytransfer.service.AccountService;
 
 import javax.inject.Inject;
 import javax.ws.rs.*;
@@ -14,12 +13,11 @@ import javax.ws.rs.core.Response;
 
 @Path(value = "moneytransfer")
 public class MoneyTransferResource {
-
-    private final TransactionService transactionService;
+    private final AccountService accountService;
 
     @Inject
-    public MoneyTransferResource(TransactionService transactionService) {
-        this.transactionService = transactionService;
+    public MoneyTransferResource(AccountService accountService) {
+        this.accountService = accountService;
     }
 
     @PUT
@@ -28,7 +26,7 @@ public class MoneyTransferResource {
     public Response makeTransfer(Transfer transfer)
     {
         try{
-            transactionService.makeTransfer(
+            accountService.makeTransfer(
                     transfer.getDebitAcc(),
                     transfer.getCreditAcc(),
                     transfer.getAmount()

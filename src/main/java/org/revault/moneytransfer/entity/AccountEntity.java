@@ -2,12 +2,15 @@ package org.revault.moneytransfer.entity;
 
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.Version;
 
 @Entity
 public class AccountEntity {
     @Id
     private String number;
     private Long amount;
+    @Version
+    private int version;
 
     public AccountEntity(Long amount) {
         this.amount = amount;
